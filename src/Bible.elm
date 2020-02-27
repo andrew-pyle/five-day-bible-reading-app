@@ -1,8 +1,8 @@
 module Bible exposing
-    ( Book
+    ( Book(..)
     , Passage
     , Ref
-    , Testament
+    , Testament(..)
     , bookToString
     , compareBooks
     , comparePassage
