@@ -3,14 +3,19 @@ module Bible exposing
     , Passage
     , Ref
     , Testament(..)
+    , bookDecoder
     , bookToString
     , compareBooks
     , comparePassage
     , getBookSortPosition
     , newOrOldTestament
+    , passageDecoder
     , passageToString
+    , refDecoder
     , refToString
     )
+
+import Json.Decode exposing (Decoder)
 
 
 type Book
@@ -560,3 +565,231 @@ passageToString passage =
             ++ bookToString passage.end.book
             ++ " "
             ++ String.fromInt passage.end.chapter
+
+
+bookDecoder : Decoder Book
+bookDecoder =
+    Json.Decode.string
+        |> Json.Decode.andThen bookStringDecoder
+
+
+bookStringDecoder : String -> Decoder Book
+bookStringDecoder bookString =
+    case bookString of
+        "Genesis" ->
+            Json.Decode.succeed Genesis
+
+        "Exodus" ->
+            Json.Decode.succeed Exodus
+
+        "Leviticus" ->
+            Json.Decode.succeed Leviticus
+
+        "Numbers" ->
+            Json.Decode.succeed Numbers
+
+        "Deuteronomy" ->
+            Json.Decode.succeed Deuteronomy
+
+        "Deut" ->
+            Json.Decode.succeed Deuteronomy
+
+        "Joshua" ->
+            Json.Decode.succeed Joshua
+
+        "Judges" ->
+            Json.Decode.succeed Judges
+
+        "Ruth" ->
+            Json.Decode.succeed Ruth
+
+        "1 Samuel" ->
+            Json.Decode.succeed OneSamuel
+
+        "2 Samuel" ->
+            Json.Decode.succeed TwoSamuel
+
+        "1 Kings" ->
+            Json.Decode.succeed OneKings
+
+        "2 Kings" ->
+            Json.Decode.succeed TwoKings
+
+        "1 Chronicles" ->
+            Json.Decode.succeed OneChronicles
+
+        "2 Chronicles" ->
+            Json.Decode.succeed TwoChronicles
+
+        "Ezra" ->
+            Json.Decode.succeed Ezra
+
+        "Nehemiah" ->
+            Json.Decode.succeed Nehemiah
+
+        "Esther" ->
+            Json.Decode.succeed Esther
+
+        "Job" ->
+            Json.Decode.succeed Job
+
+        "Psalm" ->
+            Json.Decode.succeed Psalm
+
+        "Proverbs" ->
+            Json.Decode.succeed Proverbs
+
+        "Ecclesiastes" ->
+            Json.Decode.succeed Ecclesiastes
+
+        "Song of Solomon" ->
+            Json.Decode.succeed SongOfSolomon
+
+        "Isaiah" ->
+            Json.Decode.succeed Isaiah
+
+        "Jeremiah" ->
+            Json.Decode.succeed Jeremiah
+
+        "Lamentations" ->
+            Json.Decode.succeed Lamentations
+
+        "Ezekiel" ->
+            Json.Decode.succeed Ezekiel
+
+        "Daniel" ->
+            Json.Decode.succeed Daniel
+
+        "Hosea" ->
+            Json.Decode.succeed Hosea
+
+        "Joel" ->
+            Json.Decode.succeed Joel
+
+        "Amos" ->
+            Json.Decode.succeed Amos
+
+        "Obadiah" ->
+            Json.Decode.succeed Obadiah
+
+        "Jonah" ->
+            Json.Decode.succeed Jonah
+
+        "Micah" ->
+            Json.Decode.succeed Micah
+
+        "Nahum" ->
+            Json.Decode.succeed Nahum
+
+        "Habakkuk" ->
+            Json.Decode.succeed Habakkuk
+
+        "Zephaniah" ->
+            Json.Decode.succeed Zephaniah
+
+        "Haggai" ->
+            Json.Decode.succeed Haggai
+
+        "Zechariah" ->
+            Json.Decode.succeed Zechariah
+
+        "Malachi" ->
+            Json.Decode.succeed Malachi
+
+        "Matthew" ->
+            Json.Decode.succeed Matthew
+
+        "Mark" ->
+            Json.Decode.succeed Mark
+
+        "Luke" ->
+            Json.Decode.succeed Luke
+
+        "John" ->
+            Json.Decode.succeed John
+
+        "Acts" ->
+            Json.Decode.succeed Acts
+
+        "Romans" ->
+            Json.Decode.succeed Romans
+
+        "1 Corinthians" ->
+            Json.Decode.succeed OneCorinthians
+
+        "2 Corinthians" ->
+            Json.Decode.succeed TwoCorinthians
+
+        "Galatians" ->
+            Json.Decode.succeed Galatians
+
+        "Ephesians" ->
+            Json.Decode.succeed Ephesians
+
+        "Philippians" ->
+            Json.Decode.succeed Philippians
+
+        "Colossians" ->
+            Json.Decode.succeed Colossians
+
+        "1 Thessalonians" ->
+            Json.Decode.succeed OneThessalonians
+
+        "2 Thessalonians" ->
+            Json.Decode.succeed TwoThessalonians
+
+        "1 Timothy" ->
+            Json.Decode.succeed OneTimothy
+
+        "2 Timothy" ->
+            Json.Decode.succeed TwoTimothy
+
+        "Titus" ->
+            Json.Decode.succeed Titus
+
+        "Philemon" ->
+            Json.Decode.succeed Philemon
+
+        "Hebrews" ->
+            Json.Decode.succeed Hebrews
+
+        "James" ->
+            Json.Decode.succeed James
+
+        "1 Peter" ->
+            Json.Decode.succeed OnePeter
+
+        "2 Peter" ->
+            Json.Decode.succeed TwoPeter
+
+        "1 John" ->
+            Json.Decode.succeed OneJohn
+
+        "2 John" ->
+            Json.Decode.succeed TwoJohn
+
+        "3 John" ->
+            Json.Decode.succeed ThreeJohn
+
+        "Jude" ->
+            Json.Decode.succeed Jude
+
+        "Revelation" ->
+            Json.Decode.succeed Revelation
+
+        _ ->
+            Json.Decode.fail <| "I don't know the Bible Book I got: " ++ bookString
+
+
+refDecoder : Decoder Ref
+refDecoder =
+    Json.Decode.map2 Ref
+        (Json.Decode.field "book" bookDecoder)
+        (Json.Decode.field "chapter" Json.Decode.int)
+
+
+passageDecoder : Decoder Passage
+passageDecoder =
+    Json.Decode.map2 Passage
+        (Json.Decode.field "start" refDecoder)
+        (Json.Decode.field "end" refDecoder)
