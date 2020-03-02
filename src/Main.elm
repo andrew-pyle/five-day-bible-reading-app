@@ -18,7 +18,7 @@ main =
     Browser.element
         { init = init
         , update = update
-        , subscriptions = subscriptions
+        , subscriptions = \model -> Sub.none
         , view = view
         }
 
@@ -42,10 +42,7 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { weekInView = 1, dataStatus = Loading }
-    , Http.get
-        { url = "/local/data/five-day-reading-plan.json"
-        , expect = Http.expectJson DataLoaded fiveDayPlanRawDecoder
-        }
+    , fetchFiveDayPlanData fiveDayPlanUrl
     )
 
 
@@ -72,7 +69,16 @@ update msg model =
                     ( { model | dataStatus = Success parsedData }, Cmd.none )
 
                 Err httpError ->
-                    ( { model | dataStatus = Failure httpError }, Cmd.none )
+                    -- Try again on Timeout or NetworkError
+                    case httpError of
+                        Http.Timeout ->
+                            ( { model | dataStatus = Failure httpError }, fetchFiveDayPlanData fiveDayPlanUrl )
+
+                        Http.NetworkError ->
+                            ( { model | dataStatus = Failure httpError }, fetchFiveDayPlanData fiveDayPlanUrl )
+
+                        _ ->
+                            ( { model | dataStatus = Failure httpError }, Cmd.none )
 
         PreviousDay ->
             if model.weekInView > 1 then
@@ -90,61 +96,68 @@ update msg model =
 
 
 
--- SUBSCRIPTIONS
-
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
-
-
-
 -- VIEW
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ text "Five-Day Reading Plan Electronic Log" ]
-        , button [ onClick PreviousDay ] [ text "Previous Day" ]
-        , h2 [] [ text <| "Week" ++ " " ++ String.fromInt model.weekInView ]
-        , button [ onClick NextDay ] [ text "Next Day" ]
-        , ul []
-            (case model.dataStatus of
+        [ div []
+            [ h1 [] [ text "Five-Day Reading Plan Electronic Log" ]
+            , button [ onClick PreviousDay ] [ text "Previous Day" ]
+            , h2 [] [ text <| "Week" ++ " " ++ String.fromInt model.weekInView ]
+            , button [ onClick NextDay ] [ text "Next Day" ]
+            ]
+        , div []
+            [ case model.dataStatus of
                 Success data ->
                     case Dict.get model.weekInView data of
                         Just readingForAWeek ->
-                            List.map
-                                (\eachDay ->
-                                    li []
-                                        -- [ text <| List.foldl (passageToString >> (++)) "" eachDay ]
-                                        [ text <|
-                                            "☐ "
-                                                --"☐ ✓"
-                                                ++ (eachDay
-                                                        |> List.sortWith Bible.comparePassage
-                                                        |> List.map Bible.passageToString
-                                                        |> List.intersperse " & "
-                                                        |> List.foldl (++) ""
-                                                   )
-                                        ]
+                            ul []
+                                (List.map
+                                    (\eachDay ->
+                                        li []
+                                            --"☐ ✓"
+                                            [ text <|
+                                                "☐ "
+                                                    ++ (eachDay
+                                                            |> List.sortWith Bible.comparePassage
+                                                            |> List.map Bible.passageToString
+                                                            |> List.intersperse " & "
+                                                            |> List.foldl (++) ""
+                                                       )
+                                            ]
+                                    )
+                                    readingForAWeek
                                 )
-                                readingForAWeek
 
                         Nothing ->
-                            [ li [] [ text "😰 No Reading found for this week!" ] ]
+                            p [] [ text "😰 No Reading found for this week!" ]
 
                 Failure httpError ->
-                    [ li [] [ text "Yo. Err" ] ]
+                    p [] [ text "😰 We're having some trouble connecting..." ]
 
                 Loading ->
-                    [ li [] [ text "Loading..." ] ]
-            )
+                    p [] [ text "Loading..." ]
+            ]
         ]
 
 
 
 -- HELPERS
+
+
+fiveDayPlanUrl : String
+fiveDayPlanUrl =
+    "/local/data/five-day-reading-plan.json"
+
+
+fetchFiveDayPlanData : String -> Cmd Msg
+fetchFiveDayPlanData url =
+    Http.get
+        { url = url
+        , expect = Http.expectJson DataLoaded fiveDayPlanRawDecoder
+        }
 
 
 type alias DayText =
