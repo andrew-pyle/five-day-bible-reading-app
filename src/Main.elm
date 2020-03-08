@@ -8,6 +8,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Json.Decode exposing (Decoder)
+import Time
 
 
 
@@ -34,14 +35,15 @@ type Request
 
 
 type alias Model =
-    { weekInView : Int
+    { now : Time.Posix
+    , weekInView : Int
     , dataStatus : Request
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { weekInView = 1, dataStatus = Loading }
+init : Int -> ( Model, Cmd Msg )
+init jsNow =
+    ( { now = Time.millisToPosix jsNow, weekInView = 1, dataStatus = Loading }
     , fetchFiveDayPlanData fiveDayPlanUrl
     )
 
