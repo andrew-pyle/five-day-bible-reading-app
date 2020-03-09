@@ -5113,7 +5113,53 @@ function _Http_track(router, xhr, tracker)
 			size: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
 		}))));
 	});
-}var $elm$core$Basics$EQ = {$: 'EQ'};
+}
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
+var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
 var $elm$core$List$cons = _List_cons;
@@ -10712,6 +10758,9 @@ var $elm$core$Basics$never = function (_v0) {
 };
 var $elm$browser$Browser$element = _Browser_element;
 var $author$project$Main$Loading = {$: 'Loading'};
+var $author$project$Main$SetViewFromDate = function (a) {
+	return {$: 'SetViewFromDate', a: a};
+};
 var $author$project$Main$DataLoaded = function (a) {
 	return {$: 'DataLoaded', a: a};
 };
@@ -11288,18 +11337,208 @@ var $author$project$Main$fetchFiveDayPlanData = function (url) {
 		});
 };
 var $author$project$Main$fiveDayPlanUrl = '/local/data/five-day-reading-plan.json';
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$here = _Time_here(_Utils_Tuple0);
+var $elm$core$Task$map3 = F4(
+	function (func, taskA, taskB, taskC) {
+		return A2(
+			$elm$core$Task$andThen,
+			function (a) {
+				return A2(
+					$elm$core$Task$andThen,
+					function (b) {
+						return A2(
+							$elm$core$Task$andThen,
+							function (c) {
+								return $elm$core$Task$succeed(
+									A3(func, a, b, c));
+							},
+							taskC);
+					},
+					taskB);
+			},
+			taskA);
+	});
+var $author$project$Main$monthToInt = function (month) {
+	switch (month.$) {
+		case 'Jan':
+			return 1;
+		case 'Feb':
+			return 2;
+		case 'Mar':
+			return 3;
+		case 'Apr':
+			return 4;
+		case 'May':
+			return 5;
+		case 'Jun':
+			return 6;
+		case 'Jul':
+			return 7;
+		case 'Aug':
+			return 8;
+		case 'Sep':
+			return 9;
+		case 'Oct':
+			return 10;
+		case 'Nov':
+			return 11;
+		default:
+			return 12;
+	}
+};
 var $elm$time$Time$Posix = function (a) {
 	return {$: 'Posix', a: a};
 };
 var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
-var $author$project$Main$init = function (jsNow) {
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$flooredDiv = F2(
+	function (numerator, denominator) {
+		return $elm$core$Basics$floor(numerator / denominator);
+	});
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$time$Time$toAdjustedMinutesHelp = F3(
+	function (defaultOffset, posixMinutes, eras) {
+		toAdjustedMinutesHelp:
+		while (true) {
+			if (!eras.b) {
+				return posixMinutes + defaultOffset;
+			} else {
+				var era = eras.a;
+				var olderEras = eras.b;
+				if (_Utils_cmp(era.start, posixMinutes) < 0) {
+					return posixMinutes + era.offset;
+				} else {
+					var $temp$defaultOffset = defaultOffset,
+						$temp$posixMinutes = posixMinutes,
+						$temp$eras = olderEras;
+					defaultOffset = $temp$defaultOffset;
+					posixMinutes = $temp$posixMinutes;
+					eras = $temp$eras;
+					continue toAdjustedMinutesHelp;
+				}
+			}
+		}
+	});
+var $elm$time$Time$toAdjustedMinutes = F2(
+	function (_v0, time) {
+		var defaultOffset = _v0.a;
+		var eras = _v0.b;
+		return A3(
+			$elm$time$Time$toAdjustedMinutesHelp,
+			defaultOffset,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				60000),
+			eras);
+	});
+var $elm$time$Time$toCivil = function (minutes) {
+	var rawDay = A2($elm$time$Time$flooredDiv, minutes, 60 * 24) + 719468;
+	var era = (((rawDay >= 0) ? rawDay : (rawDay - 146096)) / 146097) | 0;
+	var dayOfEra = rawDay - (era * 146097);
+	var yearOfEra = ((((dayOfEra - ((dayOfEra / 1460) | 0)) + ((dayOfEra / 36524) | 0)) - ((dayOfEra / 146096) | 0)) / 365) | 0;
+	var dayOfYear = dayOfEra - (((365 * yearOfEra) + ((yearOfEra / 4) | 0)) - ((yearOfEra / 100) | 0));
+	var mp = (((5 * dayOfYear) + 2) / 153) | 0;
+	var month = mp + ((mp < 10) ? 3 : (-9));
+	var year = yearOfEra + (era * 400);
+	return {
+		day: (dayOfYear - ((((153 * mp) + 2) / 5) | 0)) + 1,
+		month: month,
+		year: year + ((month <= 2) ? 1 : 0)
+	};
+};
+var $elm$time$Time$toDay = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).day;
+	});
+var $elm$time$Time$Apr = {$: 'Apr'};
+var $elm$time$Time$Aug = {$: 'Aug'};
+var $elm$time$Time$Dec = {$: 'Dec'};
+var $elm$time$Time$Feb = {$: 'Feb'};
+var $elm$time$Time$Jan = {$: 'Jan'};
+var $elm$time$Time$Jul = {$: 'Jul'};
+var $elm$time$Time$Jun = {$: 'Jun'};
+var $elm$time$Time$Mar = {$: 'Mar'};
+var $elm$time$Time$May = {$: 'May'};
+var $elm$time$Time$Nov = {$: 'Nov'};
+var $elm$time$Time$Oct = {$: 'Oct'};
+var $elm$time$Time$Sep = {$: 'Sep'};
+var $elm$time$Time$toMonth = F2(
+	function (zone, time) {
+		var _v0 = $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).month;
+		switch (_v0) {
+			case 1:
+				return $elm$time$Time$Jan;
+			case 2:
+				return $elm$time$Time$Feb;
+			case 3:
+				return $elm$time$Time$Mar;
+			case 4:
+				return $elm$time$Time$Apr;
+			case 5:
+				return $elm$time$Time$May;
+			case 6:
+				return $elm$time$Time$Jun;
+			case 7:
+				return $elm$time$Time$Jul;
+			case 8:
+				return $elm$time$Time$Aug;
+			case 9:
+				return $elm$time$Time$Sep;
+			case 10:
+				return $elm$time$Time$Oct;
+			case 11:
+				return $elm$time$Time$Nov;
+			default:
+				return $elm$time$Time$Dec;
+		}
+	});
+var $elm$time$Time$toYear = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).year;
+	});
+var $author$project$Main$getDateToday = A4(
+	$elm$core$Task$map3,
+	F3(
+		function (year, month, date) {
+			return _Utils_Tuple3(
+				year,
+				$author$project$Main$monthToInt(month),
+				date);
+		}),
+	A3($elm$core$Task$map2, $elm$time$Time$toYear, $elm$time$Time$here, $elm$time$Time$now),
+	A3($elm$core$Task$map2, $elm$time$Time$toMonth, $elm$time$Time$here, $elm$time$Time$now),
+	A3($elm$core$Task$map2, $elm$time$Time$toDay, $elm$time$Time$here, $elm$time$Time$now));
+var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		{
 			dataStatus: $author$project$Main$Loading,
-			now: $elm$time$Time$millisToPosix(jsNow),
+			today: _Utils_Tuple3(2020, 1, 1),
 			weekInView: 1
 		},
-		$author$project$Main$fetchFiveDayPlanData($author$project$Main$fiveDayPlanUrl));
+		$elm$core$Platform$Cmd$batch(
+			_List_fromArray(
+				[
+					$author$project$Main$fetchFiveDayPlanData($author$project$Main$fiveDayPlanUrl),
+					A2($elm$core$Task$perform, $author$project$Main$SetViewFromDate, $author$project$Main$getDateToday)
+				])));
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
@@ -11309,6 +11548,1051 @@ var $author$project$Main$Failure = function (a) {
 var $author$project$Main$Success = function (a) {
 	return {$: 'Success', a: a};
 };
+var $author$project$Main$dateToWeekNum = $elm$core$Dict$fromList(
+	_List_fromArray(
+		[
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 1, 26),
+			4),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 1, 27),
+			4),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 1, 28),
+			4),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 1, 29),
+			4),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 1, 30),
+			4),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 1, 31),
+			4),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 1),
+			4),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 2),
+			5),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 3),
+			5),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 4),
+			5),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 5),
+			5),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 6),
+			5),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 7),
+			5),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 8),
+			5),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 9),
+			6),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 10),
+			6),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 11),
+			6),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 12),
+			6),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 13),
+			6),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 14),
+			6),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 15),
+			6),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 16),
+			7),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 17),
+			7),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 18),
+			7),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 19),
+			7),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 20),
+			7),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 21),
+			7),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 22),
+			7),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 23),
+			8),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 24),
+			8),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 25),
+			8),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 26),
+			8),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 27),
+			8),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 28),
+			8),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 2, 29),
+			8),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 1),
+			9),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 2),
+			9),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 3),
+			9),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 4),
+			9),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 5),
+			9),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 6),
+			9),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 7),
+			9),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 8),
+			10),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 9),
+			10),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 10),
+			10),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 11),
+			10),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 12),
+			10),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 13),
+			10),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 14),
+			10),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 15),
+			11),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 16),
+			11),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 17),
+			11),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 18),
+			11),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 19),
+			11),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 20),
+			11),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 21),
+			11),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 22),
+			12),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 23),
+			12),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 24),
+			12),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 25),
+			12),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 26),
+			12),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 27),
+			12),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 28),
+			12),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 29),
+			13),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 30),
+			13),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 3, 31),
+			13),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 1),
+			13),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 2),
+			13),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 3),
+			13),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 4),
+			13),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 5),
+			14),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 6),
+			14),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 7),
+			14),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 8),
+			14),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 9),
+			14),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 10),
+			14),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 11),
+			14),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 12),
+			15),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 13),
+			15),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 14),
+			15),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 15),
+			15),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 16),
+			15),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 17),
+			15),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 18),
+			15),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 19),
+			16),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 20),
+			16),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 21),
+			16),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 22),
+			16),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 23),
+			16),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 24),
+			16),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 25),
+			16),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 20),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 21),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 22),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 23),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 24),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 25),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 26),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 27),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 28),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 29),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 4, 30),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 1),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 2),
+			17),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 3),
+			18),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 4),
+			18),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 5),
+			18),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 6),
+			18),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 7),
+			18),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 8),
+			18),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 9),
+			18),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 10),
+			19),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 11),
+			19),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 12),
+			19),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 13),
+			19),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 14),
+			19),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 15),
+			19),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 16),
+			19),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 17),
+			20),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 18),
+			20),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 19),
+			20),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 20),
+			20),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 21),
+			20),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 22),
+			20),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 23),
+			20),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 24),
+			21),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 25),
+			21),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 26),
+			21),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 27),
+			21),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 28),
+			21),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 29),
+			21),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 30),
+			21),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 5, 31),
+			22),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 1),
+			22),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 2),
+			22),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 3),
+			22),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 4),
+			22),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 5),
+			22),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 6),
+			22),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 7),
+			23),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 8),
+			23),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 9),
+			23),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 10),
+			23),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 11),
+			23),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 12),
+			23),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 13),
+			23),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 14),
+			24),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 15),
+			24),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 16),
+			24),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 17),
+			24),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 18),
+			24),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 19),
+			24),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 20),
+			24),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 21),
+			25),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 22),
+			25),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 23),
+			25),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 24),
+			25),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 25),
+			25),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 26),
+			25),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 27),
+			25),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 28),
+			26),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 29),
+			26),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 6, 30),
+			26),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 1),
+			26),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 2),
+			26),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 3),
+			26),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 4),
+			26),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 5),
+			27),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 6),
+			27),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 7),
+			27),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 8),
+			27),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 9),
+			27),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 10),
+			27),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 11),
+			27),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 12),
+			28),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 13),
+			28),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 14),
+			28),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 15),
+			28),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 16),
+			28),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 17),
+			28),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 18),
+			28),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 19),
+			29),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 20),
+			29),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 21),
+			29),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 22),
+			29),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 23),
+			29),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 24),
+			29),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 25),
+			29),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 26),
+			30),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 27),
+			30),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 28),
+			30),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 29),
+			30),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 30),
+			30),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 7, 31),
+			30),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 1),
+			30),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 2),
+			31),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 3),
+			31),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 4),
+			31),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 5),
+			31),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 6),
+			31),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 7),
+			31),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 8),
+			31),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 9),
+			32),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 10),
+			32),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 11),
+			32),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 12),
+			32),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 13),
+			32),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 14),
+			32),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 15),
+			32),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 16),
+			33),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 17),
+			33),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 18),
+			33),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 19),
+			33),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 20),
+			33),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 21),
+			33),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 22),
+			33),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 23),
+			34),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 24),
+			34),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 25),
+			34),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 26),
+			34),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 27),
+			34),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 28),
+			34),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 29),
+			34),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 30),
+			35),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 8, 31),
+			35),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 1),
+			35),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 2),
+			35),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 3),
+			35),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 4),
+			35),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 5),
+			35),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 6),
+			36),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 7),
+			36),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 8),
+			36),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 9),
+			36),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 10),
+			36),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 11),
+			36),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 12),
+			36),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 13),
+			37),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 14),
+			37),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 15),
+			37),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 16),
+			37),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 17),
+			37),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 18),
+			37),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 19),
+			37),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 20),
+			38),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 21),
+			38),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 22),
+			38),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 23),
+			38),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 24),
+			38),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 25),
+			38),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 26),
+			38),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 27),
+			39),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 28),
+			39),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 29),
+			39),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 9, 30),
+			39),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 1),
+			39),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 2),
+			39),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 3),
+			39),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 4),
+			40),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 5),
+			40),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 6),
+			40),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 7),
+			40),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 8),
+			40),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 9),
+			40),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 10),
+			40),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 11),
+			41),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 12),
+			41),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 13),
+			41),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 14),
+			41),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 15),
+			41),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 16),
+			41),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 17),
+			41),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 18),
+			42),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 19),
+			42),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 20),
+			42),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 21),
+			42),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 22),
+			42),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 23),
+			42),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 24),
+			42),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 25),
+			43),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 26),
+			43),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 27),
+			43),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 28),
+			43),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 29),
+			43),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 30),
+			43),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 10, 31),
+			43),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 1),
+			44),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 2),
+			44),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 3),
+			44),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 4),
+			44),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 5),
+			44),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 6),
+			44),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 7),
+			44),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 8),
+			45),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 9),
+			45),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 10),
+			45),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 11),
+			45),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 12),
+			45),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 13),
+			45),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 14),
+			45),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 15),
+			46),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 16),
+			46),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 17),
+			46),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 18),
+			46),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 19),
+			46),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 20),
+			46),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 21),
+			46),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 22),
+			47),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 23),
+			47),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 24),
+			47),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 25),
+			47),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 26),
+			47),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 27),
+			47),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 28),
+			47),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 29),
+			48),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 11, 30),
+			48),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 1),
+			48),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 2),
+			48),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 3),
+			48),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 4),
+			48),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 5),
+			48),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 6),
+			49),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 7),
+			49),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 8),
+			49),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 9),
+			49),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 10),
+			49),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 11),
+			49),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 12),
+			49),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 13),
+			50),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 14),
+			50),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 15),
+			50),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 16),
+			50),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 17),
+			50),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 18),
+			50),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 19),
+			50),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 20),
+			51),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 21),
+			51),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 22),
+			51),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 23),
+			51),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 24),
+			51),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 25),
+			51),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 26),
+			51),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 27),
+			52),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 28),
+			52),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 29),
+			52),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 30),
+			52),
+			_Utils_Tuple2(
+			_Utils_Tuple3(2020, 12, 31),
+			52)
+		]));
 var $author$project$Main$fiveDayPlanRawParser = function (rawList) {
 	var dictList = A2(
 		$elm$core$List$map,
@@ -11368,16 +12652,34 @@ var $author$project$Main$update = F2(
 						model,
 						{weekInView: model.weekInView - 1}),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-			default:
+			case 'NextDay':
 				return (model.weekInView < 52) ? _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{weekInView: model.weekInView + 1}),
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'Today':
+				return _Utils_Tuple2(
+					model,
+					A2($elm$core$Task$perform, $author$project$Main$SetViewFromDate, $author$project$Main$getDateToday));
+			default:
+				var date = msg.a;
+				var todayWeekNum = A2($elm$core$Dict$get, date, $author$project$Main$dateToWeekNum);
+				if (todayWeekNum.$ === 'Just') {
+					var weekNum = todayWeekNum.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{today: date, weekInView: weekNum}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$NextDay = {$: 'NextDay'};
 var $author$project$Main$PreviousDay = {$: 'PreviousDay'};
+var $author$project$Main$Today = {$: 'Today'};
 var $author$project$Bible$getBookSortPosition = function (book) {
 	switch (book.$) {
 		case 'Genesis':
@@ -11694,7 +12996,7 @@ var $author$project$Main$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Previous Day')
+								$elm$html$Html$text('Previous Week')
 							])),
 						A2(
 						$elm$html$Html$h2,
@@ -11712,7 +13014,17 @@ var $author$project$Main$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Next Day')
+								$elm$html$Html$text('Next Week')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Events$onClick($author$project$Main$Today)
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Today')
 							]))
 					])),
 				A2(
@@ -11794,4 +13106,5 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 		update: $author$project$Main$update,
 		view: $author$project$Main$view
 	});
-_Platform_export({'Main':{'init':$author$project$Main$main($elm$json$Json$Decode$int)({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.BackendData":{"args":[],"type":"List.List Main.WeekJson"},"Main.DayText":{"args":[],"type":"List.List Bible.Passage"},"Bible.Passage":{"args":[],"type":"{ start : Bible.Ref, end : Bible.Ref }"},"Bible.Ref":{"args":[],"type":"{ book : Bible.Book, chapter : Basics.Int }"},"Main.WeekJson":{"args":[],"type":"{ week : Basics.Int, text : Main.WeekText }"},"Main.WeekText":{"args":[],"type":"List.List Main.DayText"}},"unions":{"Main.Msg":{"args":[],"tags":{"DataLoaded":["Result.Result Http.Error Main.BackendData"],"PreviousDay":[],"NextDay":[]}},"Bible.Book":{"args":[],"tags":{"Genesis":[],"Exodus":[],"Leviticus":[],"Numbers":[],"Deuteronomy":[],"Joshua":[],"Judges":[],"Ruth":[],"OneSamuel":[],"TwoSamuel":[],"OneKings":[],"TwoKings":[],"OneChronicles":[],"TwoChronicles":[],"Ezra":[],"Nehemiah":[],"Esther":[],"Job":[],"Psalm":[],"Proverbs":[],"Ecclesiastes":[],"SongOfSolomon":[],"Isaiah":[],"Jeremiah":[],"Lamentations":[],"Ezekiel":[],"Daniel":[],"Hosea":[],"Joel":[],"Amos":[],"Obadiah":[],"Jonah":[],"Micah":[],"Nahum":[],"Habakkuk":[],"Zephaniah":[],"Haggai":[],"Zechariah":[],"Malachi":[],"Matthew":[],"Mark":[],"Luke":[],"John":[],"Acts":[],"Romans":[],"OneCorinthians":[],"TwoCorinthians":[],"Galatians":[],"Ephesians":[],"Philippians":[],"Colossians":[],"OneThessalonians":[],"TwoThessalonians":[],"OneTimothy":[],"TwoTimothy":[],"Titus":[],"Philemon":[],"Hebrews":[],"James":[],"OnePeter":[],"TwoPeter":[],"OneJohn":[],"TwoJohn":[],"ThreeJohn":[],"Jude":[],"Revelation":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
+_Platform_export({'Main':{'init':$author$project$Main$main(
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.BackendData":{"args":[],"type":"List.List Main.WeekJson"},"Main.Date":{"args":[],"type":"( Basics.Int, Basics.Int, Basics.Int )"},"Main.DayText":{"args":[],"type":"List.List Bible.Passage"},"Bible.Passage":{"args":[],"type":"{ start : Bible.Ref, end : Bible.Ref }"},"Bible.Ref":{"args":[],"type":"{ book : Bible.Book, chapter : Basics.Int }"},"Main.WeekJson":{"args":[],"type":"{ week : Basics.Int, text : Main.WeekText }"},"Main.WeekText":{"args":[],"type":"List.List Main.DayText"}},"unions":{"Main.Msg":{"args":[],"tags":{"DataLoaded":["Result.Result Http.Error Main.BackendData"],"PreviousDay":[],"NextDay":[],"Today":[],"SetViewFromDate":["Main.Date"]}},"Bible.Book":{"args":[],"tags":{"Genesis":[],"Exodus":[],"Leviticus":[],"Numbers":[],"Deuteronomy":[],"Joshua":[],"Judges":[],"Ruth":[],"OneSamuel":[],"TwoSamuel":[],"OneKings":[],"TwoKings":[],"OneChronicles":[],"TwoChronicles":[],"Ezra":[],"Nehemiah":[],"Esther":[],"Job":[],"Psalm":[],"Proverbs":[],"Ecclesiastes":[],"SongOfSolomon":[],"Isaiah":[],"Jeremiah":[],"Lamentations":[],"Ezekiel":[],"Daniel":[],"Hosea":[],"Joel":[],"Amos":[],"Obadiah":[],"Jonah":[],"Micah":[],"Nahum":[],"Habakkuk":[],"Zephaniah":[],"Haggai":[],"Zechariah":[],"Malachi":[],"Matthew":[],"Mark":[],"Luke":[],"John":[],"Acts":[],"Romans":[],"OneCorinthians":[],"TwoCorinthians":[],"Galatians":[],"Ephesians":[],"Philippians":[],"Colossians":[],"OneThessalonians":[],"TwoThessalonians":[],"OneTimothy":[],"TwoTimothy":[],"Titus":[],"Philemon":[],"Hebrews":[],"James":[],"OnePeter":[],"TwoPeter":[],"OneJohn":[],"TwoJohn":[],"ThreeJohn":[],"Jude":[],"Revelation":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
