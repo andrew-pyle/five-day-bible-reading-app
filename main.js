@@ -11369,7 +11369,7 @@ var $elm$core$Task$map3 = F4(
 			},
 			taskA);
 	});
-var $author$project$Main$monthToInt = function (month) {
+var $author$project$DateToWeek$monthToInt = function (month) {
 	switch (month.$) {
 		case 'Jan':
 			return 1;
@@ -11520,7 +11520,7 @@ var $author$project$Main$getDateToday = A4(
 		function (year, month, date) {
 			return _Utils_Tuple3(
 				year,
-				$author$project$Main$monthToInt(month),
+				$author$project$DateToWeek$monthToInt(month),
 				date);
 		}),
 	A3($elm$core$Task$map2, $elm$time$Time$toYear, $elm$time$Time$here, $elm$time$Time$now),
@@ -11548,7 +11548,7 @@ var $author$project$Main$Failure = function (a) {
 var $author$project$Main$Success = function (a) {
 	return {$: 'Success', a: a};
 };
-var $author$project$Main$dateToWeekNum = $elm$core$Dict$fromList(
+var $author$project$DateToWeek$dateToWeekNum = $elm$core$Dict$fromList(
 	_List_fromArray(
 		[
 			_Utils_Tuple2(
@@ -12664,7 +12664,7 @@ var $author$project$Main$update = F2(
 					A2($elm$core$Task$perform, $author$project$Main$SetViewFromDate, $author$project$Main$getDateToday));
 			default:
 				var date = msg.a;
-				var todayWeekNum = A2($elm$core$Dict$get, date, $author$project$Main$dateToWeekNum);
+				var todayWeekNum = A2($elm$core$Dict$get, date, $author$project$DateToWeek$dateToWeekNum);
 				if (todayWeekNum.$ === 'Just') {
 					var weekNum = todayWeekNum.a;
 					return _Utils_Tuple2(
@@ -13107,4 +13107,4 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 		view: $author$project$Main$view
 	});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.BackendData":{"args":[],"type":"List.List Main.WeekJson"},"Main.Date":{"args":[],"type":"( Basics.Int, Basics.Int, Basics.Int )"},"Main.DayText":{"args":[],"type":"List.List Bible.Passage"},"Bible.Passage":{"args":[],"type":"{ start : Bible.Ref, end : Bible.Ref }"},"Bible.Ref":{"args":[],"type":"{ book : Bible.Book, chapter : Basics.Int }"},"Main.WeekJson":{"args":[],"type":"{ week : Basics.Int, text : Main.WeekText }"},"Main.WeekText":{"args":[],"type":"List.List Main.DayText"}},"unions":{"Main.Msg":{"args":[],"tags":{"DataLoaded":["Result.Result Http.Error Main.BackendData"],"PreviousDay":[],"NextDay":[],"Today":[],"SetViewFromDate":["Main.Date"]}},"Bible.Book":{"args":[],"tags":{"Genesis":[],"Exodus":[],"Leviticus":[],"Numbers":[],"Deuteronomy":[],"Joshua":[],"Judges":[],"Ruth":[],"OneSamuel":[],"TwoSamuel":[],"OneKings":[],"TwoKings":[],"OneChronicles":[],"TwoChronicles":[],"Ezra":[],"Nehemiah":[],"Esther":[],"Job":[],"Psalm":[],"Proverbs":[],"Ecclesiastes":[],"SongOfSolomon":[],"Isaiah":[],"Jeremiah":[],"Lamentations":[],"Ezekiel":[],"Daniel":[],"Hosea":[],"Joel":[],"Amos":[],"Obadiah":[],"Jonah":[],"Micah":[],"Nahum":[],"Habakkuk":[],"Zephaniah":[],"Haggai":[],"Zechariah":[],"Malachi":[],"Matthew":[],"Mark":[],"Luke":[],"John":[],"Acts":[],"Romans":[],"OneCorinthians":[],"TwoCorinthians":[],"Galatians":[],"Ephesians":[],"Philippians":[],"Colossians":[],"OneThessalonians":[],"TwoThessalonians":[],"OneTimothy":[],"TwoTimothy":[],"Titus":[],"Philemon":[],"Hebrews":[],"James":[],"OnePeter":[],"TwoPeter":[],"OneJohn":[],"TwoJohn":[],"ThreeJohn":[],"Jude":[],"Revelation":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.BackendData":{"args":[],"type":"List.List Main.WeekJson"},"DateToWeek.Date":{"args":[],"type":"( Basics.Int, Basics.Int, Basics.Int )"},"Main.DayText":{"args":[],"type":"List.List Bible.Passage"},"Bible.Passage":{"args":[],"type":"{ start : Bible.Ref, end : Bible.Ref }"},"Bible.Ref":{"args":[],"type":"{ book : Bible.Book, chapter : Basics.Int }"},"Main.WeekJson":{"args":[],"type":"{ week : Basics.Int, text : Main.WeekText }"},"Main.WeekText":{"args":[],"type":"List.List Main.DayText"}},"unions":{"Main.Msg":{"args":[],"tags":{"DataLoaded":["Result.Result Http.Error Main.BackendData"],"PreviousDay":[],"NextDay":[],"Today":[],"SetViewFromDate":["DateToWeek.Date"]}},"Bible.Book":{"args":[],"tags":{"Genesis":[],"Exodus":[],"Leviticus":[],"Numbers":[],"Deuteronomy":[],"Joshua":[],"Judges":[],"Ruth":[],"OneSamuel":[],"TwoSamuel":[],"OneKings":[],"TwoKings":[],"OneChronicles":[],"TwoChronicles":[],"Ezra":[],"Nehemiah":[],"Esther":[],"Job":[],"Psalm":[],"Proverbs":[],"Ecclesiastes":[],"SongOfSolomon":[],"Isaiah":[],"Jeremiah":[],"Lamentations":[],"Ezekiel":[],"Daniel":[],"Hosea":[],"Joel":[],"Amos":[],"Obadiah":[],"Jonah":[],"Micah":[],"Nahum":[],"Habakkuk":[],"Zephaniah":[],"Haggai":[],"Zechariah":[],"Malachi":[],"Matthew":[],"Mark":[],"Luke":[],"John":[],"Acts":[],"Romans":[],"OneCorinthians":[],"TwoCorinthians":[],"Galatians":[],"Ephesians":[],"Philippians":[],"Colossians":[],"OneThessalonians":[],"TwoThessalonians":[],"OneTimothy":[],"TwoTimothy":[],"Titus":[],"Philemon":[],"Hebrews":[],"James":[],"OnePeter":[],"TwoPeter":[],"OneJohn":[],"TwoJohn":[],"ThreeJohn":[],"Jude":[],"Revelation":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
