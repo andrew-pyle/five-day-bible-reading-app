@@ -33,7 +33,7 @@ main =
 type Request
     = Failure Http.Error
     | Loading
-    | Success FiveDayPlanData
+    | Success UserProgress
 
 
 type alias Model =
@@ -63,6 +63,7 @@ type Msg
     | NextDay
     | Today
     | SetViewFromDate Date
+    | ToggleDayTextComplete Int Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -73,7 +74,7 @@ update msg model =
                 Ok rawData ->
                     let
                         parsedData =
-                            fiveDayPlanRawParser rawData
+                            fiveDayPlanUserProgressParser rawData
                     in
                     ( { model | dataStatus = Success parsedData }, Cmd.none )
 
@@ -118,6 +119,44 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        ToggleDayTextComplete weekIndex dayIndex ->
+            case model.dataStatus of
+                Failure e ->
+                    ( model, Cmd.none )
+
+                Loading ->
+                    ( model, Cmd.none )
+
+                Success userProgress ->
+                    ( { model
+                        | dataStatus =
+                            Success
+                                (Dict.update
+                                    weekIndex
+                                    (\week ->
+                                        case week of
+                                            Nothing ->
+                                                Nothing
+
+                                            Just weekFound ->
+                                                Just
+                                                    (List.indexedMap
+                                                        (\index day ->
+                                                            if index == dayIndex then
+                                                                { day | complete = not day.complete }
+
+                                                            else
+                                                                day
+                                                        )
+                                                        weekFound
+                                                    )
+                                    )
+                                    userProgress
+                                )
+                      }
+                    , Cmd.none
+                    )
+
 
 
 -- VIEW
@@ -125,32 +164,41 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ div []
+    div [ class "container" ]
+        [ div [ class "header" ]
             [ h1 [] [ text "Five-Day Reading Plan Electronic Log" ]
-            , button [ onClick PreviousDay ] [ text "Previous Week" ]
-            , h2 [] [ text <| "Week" ++ " " ++ String.fromInt model.weekInView ]
-            , button [ onClick NextDay ] [ text "Next Week" ]
-            , button [ onClick Today ] [ text "Today" ]
+            , div [ class "week-controls" ]
+                [ button [ onClick PreviousDay ] [ text "← Previous Week" ]
+                , h2 [ class "week-label" ] [ text <| "Week" ++ " " ++ String.fromInt model.weekInView ]
+                , button [ onClick NextDay ] [ text "Next Week →" ]
+                ]
+            , button [ class "navigate-today", onClick Today ] [ text "Today" ]
             ]
         , div []
             [ case model.dataStatus of
                 Success data ->
                     case Dict.get model.weekInView data of
                         Just readingForAWeek ->
-                            ul []
-                                (List.map
-                                    (\eachDay ->
-                                        li []
-                                            --"☐ ✓"
+                            ul [ class "day-text-list" ]
+                                (List.indexedMap
+                                    (\dayIndex eachDay ->
+                                        li
+                                            [ class
+                                                (if eachDay.complete then
+                                                    "complete"
+
+                                                 else
+                                                    "not-complete"
+                                                )
+                                            , onClick (ToggleDayTextComplete model.weekInView dayIndex)
+                                            ]
                                             [ text <|
-                                                "☐ "
-                                                    ++ (eachDay
-                                                            |> List.sortWith Bible.comparePassage
-                                                            |> List.map Bible.passageToString
-                                                            |> List.intersperse " & "
-                                                            |> List.foldl (++) ""
-                                                       )
+                                                (eachDay.dayText
+                                                    |> List.sortWith Bible.comparePassage
+                                                    |> List.map Bible.passageToString
+                                                    |> List.intersperse " , "
+                                                    |> List.foldl (++) ""
+                                                )
                                             ]
                                     )
                                     readingForAWeek
@@ -203,10 +251,6 @@ weekTextDecoder =
     Json.Decode.list dayTextDecoder
 
 
-type alias FiveDayPlanData =
-    Dict Int WeekText
-
-
 type alias WeekJson =
     { week : Int
     , text : WeekText
@@ -229,14 +273,33 @@ type alias BackendData =
     List WeekJson
 
 
-fiveDayPlanRawParser : List WeekJson -> Dict Int WeekText
-fiveDayPlanRawParser rawList =
+type alias TrackedDayText =
+    { dayText : DayText
+    , complete : Bool
+    }
+
+
+type alias UserWeekProgress =
+    List TrackedDayText
+
+
+type alias UserProgress =
+    Dict Int UserWeekProgress
+
+
+initializeUserWeekData : WeekText -> UserWeekProgress
+initializeUserWeekData weekText =
+    List.map (\dayText -> TrackedDayText dayText False) weekText
+
+
+fiveDayPlanUserProgressParser : BackendData -> UserProgress
+fiveDayPlanUserProgressParser rawList =
     let
         dictList =
             List.map
-                (\obj ->
-                    ( obj.week
-                    , obj.text
+                (\json ->
+                    ( json.week
+                    , initializeUserWeekData json.text
                     )
                 )
                 rawList

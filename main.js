@@ -12593,11 +12593,25 @@ var $author$project$DateToWeek$dateToWeekNum = $elm$core$Dict$fromList(
 			_Utils_Tuple3(2020, 12, 31),
 			52)
 		]));
-var $author$project$Main$fiveDayPlanRawParser = function (rawList) {
+var $author$project$Main$TrackedDayText = F2(
+	function (dayText, complete) {
+		return {complete: complete, dayText: dayText};
+	});
+var $author$project$Main$initializeUserWeekData = function (weekText) {
+	return A2(
+		$elm$core$List$map,
+		function (dayText) {
+			return A2($author$project$Main$TrackedDayText, dayText, false);
+		},
+		weekText);
+};
+var $author$project$Main$fiveDayPlanUserProgressParser = function (rawList) {
 	var dictList = A2(
 		$elm$core$List$map,
-		function (obj) {
-			return _Utils_Tuple2(obj.week, obj.text);
+		function (json) {
+			return _Utils_Tuple2(
+				json.week,
+				$author$project$Main$initializeUserWeekData(json.text));
 		},
 		rawList);
 	return $elm$core$Dict$fromList(dictList);
@@ -12609,7 +12623,7 @@ var $author$project$Main$update = F2(
 				var response = msg.a;
 				if (response.$ === 'Ok') {
 					var rawData = response.a;
-					var parsedData = $author$project$Main$fiveDayPlanRawParser(rawData);
+					var parsedData = $author$project$Main$fiveDayPlanUserProgressParser(rawData);
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
@@ -12662,7 +12676,7 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					model,
 					A2($elm$core$Task$perform, $author$project$Main$SetViewFromDate, $author$project$Main$getDateToday));
-			default:
+			case 'SetViewFromDate':
 				var date = msg.a;
 				var todayWeekNum = A2($elm$core$Dict$get, date, $author$project$DateToWeek$dateToWeekNum);
 				if (todayWeekNum.$ === 'Just') {
@@ -12675,11 +12689,56 @@ var $author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				}
+			default:
+				var weekIndex = msg.a;
+				var dayIndex = msg.b;
+				var _v4 = model.dataStatus;
+				switch (_v4.$) {
+					case 'Failure':
+						var e = _v4.a;
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					case 'Loading':
+						return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+					default:
+						var userProgress = _v4.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									dataStatus: $author$project$Main$Success(
+										A3(
+											$elm$core$Dict$update,
+											weekIndex,
+											function (week) {
+												if (week.$ === 'Nothing') {
+													return $elm$core$Maybe$Nothing;
+												} else {
+													var weekFound = week.a;
+													return $elm$core$Maybe$Just(
+														A2(
+															$elm$core$List$indexedMap,
+															F2(
+																function (index, day) {
+																	return _Utils_eq(index, dayIndex) ? _Utils_update(
+																		day,
+																		{complete: !day.complete}) : day;
+																}),
+															weekFound));
+												}
+											},
+											userProgress))
+								}),
+							$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$NextDay = {$: 'NextDay'};
 var $author$project$Main$PreviousDay = {$: 'PreviousDay'};
 var $author$project$Main$Today = {$: 'Today'};
+var $author$project$Main$ToggleDayTextComplete = F2(
+	function (a, b) {
+		return {$: 'ToggleDayTextComplete', a: a, b: b};
+	});
 var $author$project$Bible$getBookSortPosition = function (book) {
 	switch (book.$) {
 		case 'Genesis':
@@ -12973,12 +13032,18 @@ var $elm$core$List$sortWith = _List_sortWith;
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
-		_List_Nil,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('container')
+			]),
 		_List_fromArray(
 			[
 				A2(
 				$elm$html$Html$div,
-				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('header')
+					]),
 				_List_fromArray(
 					[
 						A2(
@@ -12989,37 +13054,50 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$text('Five-Day Reading Plan Electronic Log')
 							])),
 						A2(
-						$elm$html$Html$button,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Events$onClick($author$project$Main$PreviousDay)
+								$elm$html$Html$Attributes$class('week-controls')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Previous Week')
-							])),
-						A2(
-						$elm$html$Html$h2,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$elm$html$Html$text(
-								'Week' + (' ' + $elm$core$String$fromInt(model.weekInView)))
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick($author$project$Main$PreviousDay)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('← Previous Week')
+									])),
+								A2(
+								$elm$html$Html$h2,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('week-label')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										'Week' + (' ' + $elm$core$String$fromInt(model.weekInView)))
+									])),
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Events$onClick($author$project$Main$NextDay)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Next Week →')
+									]))
 							])),
 						A2(
 						$elm$html$Html$button,
 						_List_fromArray(
 							[
-								$elm$html$Html$Events$onClick($author$project$Main$NextDay)
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Next Week')
-							])),
-						A2(
-						$elm$html$Html$button,
-						_List_fromArray(
-							[
+								$elm$html$Html$Attributes$class('navigate-today'),
 								$elm$html$Html$Events$onClick($author$project$Main$Today)
 							]),
 						_List_fromArray(
@@ -13042,29 +13120,39 @@ var $author$project$Main$view = function (model) {
 									var readingForAWeek = _v1.a;
 									return A2(
 										$elm$html$Html$ul,
-										_List_Nil,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('day-text-list')
+											]),
 										A2(
-											$elm$core$List$map,
-											function (eachDay) {
-												return A2(
-													$elm$html$Html$li,
-													_List_Nil,
-													_List_fromArray(
-														[
-															$elm$html$Html$text(
-															'☐ ' + A3(
-																$elm$core$List$foldl,
-																$elm$core$Basics$append,
-																'',
-																A2(
-																	$elm$core$List$intersperse,
-																	' & ',
+											$elm$core$List$indexedMap,
+											F2(
+												function (dayIndex, eachDay) {
+													return A2(
+														$elm$html$Html$li,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class(
+																eachDay.complete ? 'complete' : 'not-complete'),
+																$elm$html$Html$Events$onClick(
+																A2($author$project$Main$ToggleDayTextComplete, model.weekInView, dayIndex))
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																A3(
+																	$elm$core$List$foldl,
+																	$elm$core$Basics$append,
+																	'',
 																	A2(
-																		$elm$core$List$map,
-																		$author$project$Bible$passageToString,
-																		A2($elm$core$List$sortWith, $author$project$Bible$comparePassage, eachDay)))))
-														]));
-											},
+																		$elm$core$List$intersperse,
+																		' , ',
+																		A2(
+																			$elm$core$List$map,
+																			$author$project$Bible$passageToString,
+																			A2($elm$core$List$sortWith, $author$project$Bible$comparePassage, eachDay.dayText)))))
+															]));
+												}),
 											readingForAWeek));
 								} else {
 									return A2(
@@ -13107,4 +13195,4 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 		view: $author$project$Main$view
 	});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.BackendData":{"args":[],"type":"List.List Main.WeekJson"},"DateToWeek.Date":{"args":[],"type":"( Basics.Int, Basics.Int, Basics.Int )"},"Main.DayText":{"args":[],"type":"List.List Bible.Passage"},"Bible.Passage":{"args":[],"type":"{ start : Bible.Ref, end : Bible.Ref }"},"Bible.Ref":{"args":[],"type":"{ book : Bible.Book, chapter : Basics.Int }"},"Main.WeekJson":{"args":[],"type":"{ week : Basics.Int, text : Main.WeekText }"},"Main.WeekText":{"args":[],"type":"List.List Main.DayText"}},"unions":{"Main.Msg":{"args":[],"tags":{"DataLoaded":["Result.Result Http.Error Main.BackendData"],"PreviousDay":[],"NextDay":[],"Today":[],"SetViewFromDate":["DateToWeek.Date"]}},"Bible.Book":{"args":[],"tags":{"Genesis":[],"Exodus":[],"Leviticus":[],"Numbers":[],"Deuteronomy":[],"Joshua":[],"Judges":[],"Ruth":[],"OneSamuel":[],"TwoSamuel":[],"OneKings":[],"TwoKings":[],"OneChronicles":[],"TwoChronicles":[],"Ezra":[],"Nehemiah":[],"Esther":[],"Job":[],"Psalm":[],"Proverbs":[],"Ecclesiastes":[],"SongOfSolomon":[],"Isaiah":[],"Jeremiah":[],"Lamentations":[],"Ezekiel":[],"Daniel":[],"Hosea":[],"Joel":[],"Amos":[],"Obadiah":[],"Jonah":[],"Micah":[],"Nahum":[],"Habakkuk":[],"Zephaniah":[],"Haggai":[],"Zechariah":[],"Malachi":[],"Matthew":[],"Mark":[],"Luke":[],"John":[],"Acts":[],"Romans":[],"OneCorinthians":[],"TwoCorinthians":[],"Galatians":[],"Ephesians":[],"Philippians":[],"Colossians":[],"OneThessalonians":[],"TwoThessalonians":[],"OneTimothy":[],"TwoTimothy":[],"Titus":[],"Philemon":[],"Hebrews":[],"James":[],"OnePeter":[],"TwoPeter":[],"OneJohn":[],"TwoJohn":[],"ThreeJohn":[],"Jude":[],"Revelation":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Main.BackendData":{"args":[],"type":"List.List Main.WeekJson"},"DateToWeek.Date":{"args":[],"type":"( Basics.Int, Basics.Int, Basics.Int )"},"Main.DayText":{"args":[],"type":"List.List Bible.Passage"},"Bible.Passage":{"args":[],"type":"{ start : Bible.Ref, end : Bible.Ref }"},"Bible.Ref":{"args":[],"type":"{ book : Bible.Book, chapter : Basics.Int }"},"Main.WeekJson":{"args":[],"type":"{ week : Basics.Int, text : Main.WeekText }"},"Main.WeekText":{"args":[],"type":"List.List Main.DayText"}},"unions":{"Main.Msg":{"args":[],"tags":{"DataLoaded":["Result.Result Http.Error Main.BackendData"],"PreviousDay":[],"NextDay":[],"Today":[],"SetViewFromDate":["DateToWeek.Date"],"ToggleDayTextComplete":["Basics.Int","Basics.Int"]}},"Bible.Book":{"args":[],"tags":{"Genesis":[],"Exodus":[],"Leviticus":[],"Numbers":[],"Deuteronomy":[],"Joshua":[],"Judges":[],"Ruth":[],"OneSamuel":[],"TwoSamuel":[],"OneKings":[],"TwoKings":[],"OneChronicles":[],"TwoChronicles":[],"Ezra":[],"Nehemiah":[],"Esther":[],"Job":[],"Psalm":[],"Proverbs":[],"Ecclesiastes":[],"SongOfSolomon":[],"Isaiah":[],"Jeremiah":[],"Lamentations":[],"Ezekiel":[],"Daniel":[],"Hosea":[],"Joel":[],"Amos":[],"Obadiah":[],"Jonah":[],"Micah":[],"Nahum":[],"Habakkuk":[],"Zephaniah":[],"Haggai":[],"Zechariah":[],"Malachi":[],"Matthew":[],"Mark":[],"Luke":[],"John":[],"Acts":[],"Romans":[],"OneCorinthians":[],"TwoCorinthians":[],"Galatians":[],"Ephesians":[],"Philippians":[],"Colossians":[],"OneThessalonians":[],"TwoThessalonians":[],"OneTimothy":[],"TwoTimothy":[],"Titus":[],"Philemon":[],"Hebrews":[],"James":[],"OnePeter":[],"TwoPeter":[],"OneJohn":[],"TwoJohn":[],"ThreeJohn":[],"Jude":[],"Revelation":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String.String"],"Timeout":[],"NetworkError":[],"BadStatus":["Basics.Int"],"BadBody":["String.String"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"List.List":{"args":["a"],"tags":{}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"String.String":{"args":[],"tags":{"String":[]}}}}})}});}(this));
