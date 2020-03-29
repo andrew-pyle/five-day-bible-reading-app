@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Bible
 import Browser
@@ -9,6 +9,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Http
 import Json.Decode exposing (Decoder)
+import Json.Encode
 import Task
 import Time
 
@@ -30,27 +31,58 @@ main =
 -- MODEL
 
 
-type Request
-    = Failure Http.Error
+type HttpRequest
+    = NotSent
     | Loading
-    | Success UserProgress
+    | Failure Http.Error
+    | Success BackendData
+
+
+type AppData
+    = LoadingIt
+    | CantGetIt String
+    | GotIt UserProgress
 
 
 type alias Model =
     { today : Date
     , weekInView : Int
-    , dataStatus : Request
+    , httpDataRequest : HttpRequest
+    , appData : AppData
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { today = ( 2020, 1, 1 ), weekInView = 1, dataStatus = Loading }
-    , Cmd.batch
-        [ fetchFiveDayPlanData fiveDayPlanUrl
-        , Task.perform SetViewFromDate getDateToday
-        ]
-    )
+init : Json.Encode.Value -> ( Model, Cmd Msg )
+init flags =
+    case Json.Decode.decodeValue decodeUserProgress flags of
+        Ok flagData ->
+            ( { today = ( 2020, 1, 1 )
+              , weekInView = 1
+              , httpDataRequest = NotSent
+              , appData = GotIt flagData
+              }
+            , Cmd.batch
+                [ Task.perform SetViewFromDate getDateToday ]
+            )
+
+        Err err ->
+            ( { today = ( 2020, 1, 1 )
+              , weekInView = 1
+              , httpDataRequest = NotSent
+              , appData = LoadingIt
+              }
+            , Cmd.batch
+                [ fetchFiveDayPlanData fiveDayPlanUrl
+                , Task.perform SetViewFromDate getDateToday
+                ]
+            )
+
+
+
+-- PORTS
+
+
+port persistUserProgress : Json.Encode.Value -> Cmd msg
 
 
 
@@ -58,7 +90,9 @@ init _ =
 
 
 type Msg
-    = DataLoaded (Result Http.Error BackendData)
+    = NoOp
+    | DataLoaded (Result Http.Error BackendData)
+    | PersistUserProgress UserProgress
     | PreviousDay
     | NextDay
     | Today
@@ -66,9 +100,19 @@ type Msg
     | ToggleDayTextComplete Int Int
 
 
+
+-- | ToggleViewSource
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+        PersistUserProgress data ->
+            ( model, persistUserProgress <| encodeUserProgress data )
+
         DataLoaded response ->
             case response of
                 Ok rawData ->
@@ -76,19 +120,19 @@ update msg model =
                         parsedData =
                             fiveDayPlanUserProgressParser rawData
                     in
-                    ( { model | dataStatus = Success parsedData }, Cmd.none )
+                    ( { model | appData = GotIt parsedData, httpDataRequest = Success rawData }, Cmd.none )
 
                 Err httpError ->
                     -- Try again on Timeout or NetworkError
                     case httpError of
                         Http.Timeout ->
-                            ( { model | dataStatus = Failure httpError }, fetchFiveDayPlanData fiveDayPlanUrl )
+                            ( { model | httpDataRequest = Failure httpError }, fetchFiveDayPlanData fiveDayPlanUrl )
 
                         Http.NetworkError ->
-                            ( { model | dataStatus = Failure httpError }, fetchFiveDayPlanData fiveDayPlanUrl )
+                            ( { model | httpDataRequest = Failure httpError }, fetchFiveDayPlanData fiveDayPlanUrl )
 
                         _ ->
-                            ( { model | dataStatus = Failure httpError }, Cmd.none )
+                            ( { model | httpDataRequest = Failure httpError }, Cmd.none )
 
         PreviousDay ->
             if model.weekInView > 1 then
@@ -120,19 +164,18 @@ update msg model =
                     ( model, Cmd.none )
 
         ToggleDayTextComplete weekIndex dayIndex ->
-            case model.dataStatus of
-                Failure e ->
+            case model.appData of
+                LoadingIt ->
                     ( model, Cmd.none )
 
-                Loading ->
+                CantGetIt errMsg ->
                     ( model, Cmd.none )
 
-                Success userProgress ->
+                GotIt data ->
                     ( { model
-                        | dataStatus =
-                            Success
-                                (Dict.update
-                                    weekIndex
+                        | appData =
+                            GotIt
+                                (Dict.update weekIndex
                                     (\week ->
                                         case week of
                                             Nothing ->
@@ -151,7 +194,7 @@ update msg model =
                                                         weekFound
                                                     )
                                     )
-                                    userProgress
+                                    data
                                 )
                       }
                     , Cmd.none
@@ -175,8 +218,8 @@ view model =
             , button [ class "navigate-today", onClick Today ] [ text "Today" ]
             ]
         , div []
-            [ case model.dataStatus of
-                Success data ->
+            [ case model.appData of
+                GotIt data ->
                     case Dict.get model.weekInView data of
                         Just readingForAWeek ->
                             ul [ class "day-text-list" ]
@@ -207,17 +250,33 @@ view model =
                         Nothing ->
                             p [] [ text "😰 No Reading found for this week!" ]
 
-                Failure httpError ->
-                    p [] [ text "😰 We're having some trouble connecting..." ]
-
-                Loading ->
+                LoadingIt ->
                     p [] [ text "Loading..." ]
+
+                CantGetIt errMsg ->
+                    p [] [ text "\u{1F92A} We're having some trouble connecting..." ]
+            ]
+        , div []
+            [ button
+                [ onClick <|
+                    case model.appData of
+                        GotIt data ->
+                            PersistUserProgress data
+
+                        LoadingIt ->
+                            NoOp
+
+                        CantGetIt errMsg ->
+                            NoOp
+                ]
+                [ text "Cache Locally" ]
             ]
         ]
 
 
 
 -- HELPERS
+-- HTTP Request
 
 
 fiveDayPlanUrl : String
@@ -233,44 +292,12 @@ fetchFiveDayPlanData url =
         }
 
 
+
+-- App Data Structures
+
+
 type alias DayText =
     List Bible.Passage
-
-
-dayTextDecoder : Decoder DayText
-dayTextDecoder =
-    Json.Decode.list Bible.passageDecoder
-
-
-type alias WeekText =
-    List DayText
-
-
-weekTextDecoder : Decoder WeekText
-weekTextDecoder =
-    Json.Decode.list dayTextDecoder
-
-
-type alias WeekJson =
-    { week : Int
-    , text : WeekText
-    }
-
-
-weekJsonDecoder : Decoder WeekJson
-weekJsonDecoder =
-    Json.Decode.map2 WeekJson
-        (Json.Decode.field "week" Json.Decode.int)
-        (Json.Decode.field "text" weekTextDecoder)
-
-
-fiveDayPlanRawDecoder : Decoder (List WeekJson)
-fiveDayPlanRawDecoder =
-    Json.Decode.list <| weekJsonDecoder
-
-
-type alias BackendData =
-    List WeekJson
 
 
 type alias TrackedDayText =
@@ -287,14 +314,63 @@ type alias UserProgress =
     Dict Int UserWeekProgress
 
 
-initializeUserWeekData : WeekText -> UserWeekProgress
-initializeUserWeekData weekText =
-    List.map (\dayText -> TrackedDayText dayText False) weekText
+
+-- API Data Structures
+
+
+type alias WeekText =
+    List DayText
+
+
+type alias WeekJson =
+    { week : Int
+    , text : WeekText
+    }
+
+
+type alias BackendData =
+    List WeekJson
+
+
+dayTextDecoder : Decoder DayText
+dayTextDecoder =
+    Json.Decode.list Bible.passageDecoder
+
+
+weekTextDecoder : Decoder WeekText
+weekTextDecoder =
+    Json.Decode.list dayTextDecoder
+
+
+trackedDayTextDecoder : Decoder TrackedDayText
+trackedDayTextDecoder =
+    Json.Decode.map2 TrackedDayText
+        (Json.Decode.field "dayText" dayTextDecoder)
+        (Json.Decode.field "complete" Json.Decode.bool)
+
+
+
+-- API Data Structures Json Decoders
+
+
+weekJsonDecoder : Decoder WeekJson
+weekJsonDecoder =
+    Json.Decode.map2 WeekJson
+        (Json.Decode.field "week" Json.Decode.int)
+        (Json.Decode.field "text" weekTextDecoder)
+
+
+fiveDayPlanRawDecoder : Decoder (List WeekJson)
+fiveDayPlanRawDecoder =
+    Json.Decode.list <| weekJsonDecoder
 
 
 fiveDayPlanUserProgressParser : BackendData -> UserProgress
 fiveDayPlanUserProgressParser rawList =
+    -- Transform HTTP data to App Data structure. Initializes each day's reading
+    -- with complete = false
     let
+        dictList : List ( Int, UserWeekProgress )
         dictList =
             List.map
                 (\json ->
@@ -307,9 +383,91 @@ fiveDayPlanUserProgressParser rawList =
     Dict.fromList dictList
 
 
+initializeUserWeekData : WeekText -> UserWeekProgress
+initializeUserWeekData weekText =
+    -- Transforms a list of DayText into a TrackedDayText record with complete = false
+    List.map (\dayText -> TrackedDayText dayText False) weekText
+
+
+
+-- TASKS for Dates
+
+
 getDateToday : Task.Task x Date
 getDateToday =
     Task.map3 (\year month date -> ( year, monthToInt month, date ))
         (Task.map2 Time.toYear Time.here Time.now)
         (Task.map2 Time.toMonth Time.here Time.now)
         (Task.map2 Time.toDay Time.here Time.now)
+
+
+
+-- ENCODERS for persisted App Data
+
+
+encodeUserProgress : UserProgress -> Json.Encode.Value
+encodeUserProgress usrProg =
+    Json.Encode.dict
+        String.fromInt
+        encodeUserWeekProgress
+        usrProg
+
+
+encodeUserWeekProgress : UserWeekProgress -> Json.Encode.Value
+encodeUserWeekProgress usrWkProg =
+    Json.Encode.list encodeTrackedDayText usrWkProg
+
+
+encodeTrackedDayText : TrackedDayText -> Json.Encode.Value
+encodeTrackedDayText trackedDayText =
+    Json.Encode.object
+        [ ( "dayText", encodeDayText trackedDayText.dayText )
+        , ( "complete", Json.Encode.bool trackedDayText.complete )
+        ]
+
+
+encodeDayText : DayText -> Json.Encode.Value
+encodeDayText dayText =
+    Json.Encode.list
+        Bible.passageEncoder
+        dayText
+
+
+
+-- Decoders for Persisted App Data
+
+
+decodeUserProgressHelper : Dict String UserWeekProgress -> Decoder (Dict Int UserWeekProgress)
+decodeUserProgressHelper stringKeyDict =
+    -- TODO 99 isn't a good default for Maybe
+    let
+        stringDictList =
+            Dict.toList stringKeyDict
+
+        intDictList =
+            List.map
+                (\( key, value ) ->
+                    case String.toInt key of
+                        Just int ->
+                            ( int, value )
+
+                        Nothing ->
+                            ( 99, value )
+                )
+                stringDictList
+    in
+    Json.Decode.succeed <| Dict.fromList intDictList
+
+
+decodeUserProgress : Decoder UserProgress
+decodeUserProgress =
+    Json.Decode.dict decodeUserWeekProgress
+        |> Json.Decode.andThen decodeUserProgressHelper
+
+
+decodeUserWeekProgress : Decoder UserWeekProgress
+decodeUserWeekProgress =
+    Json.Decode.list <|
+        Json.Decode.map2 TrackedDayText
+            (Json.Decode.field "dayText" dayTextDecoder)
+            (Json.Decode.field "complete" Json.Decode.bool)
