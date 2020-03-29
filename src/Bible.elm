@@ -4,18 +4,22 @@ module Bible exposing
     , Ref
     , Testament(..)
     , bookDecoder
+    , bookEncoder
     , bookToString
     , compareBooks
     , comparePassage
     , getBookSortPosition
     , newOrOldTestament
     , passageDecoder
+    , passageEncoder
     , passageToString
     , refDecoder
+    , refEncoder
     , refToString
     )
 
 import Json.Decode exposing (Decoder)
+import Json.Encode
 
 
 type Book
@@ -567,6 +571,10 @@ passageToString passage =
             ++ String.fromInt passage.end.chapter
 
 
+
+-- JSON DECODERS
+
+
 bookDecoder : Decoder Book
 bookDecoder =
     Json.Decode.string
@@ -910,3 +918,28 @@ passageDecoder =
     Json.Decode.map2 Passage
         (Json.Decode.field "start" refDecoder)
         (Json.Decode.field "end" refDecoder)
+
+
+
+-- JSON ENCODERS
+
+
+bookEncoder : Book -> Json.Encode.Value
+bookEncoder book =
+    Json.Encode.string <| bookToString book
+
+
+refEncoder : Ref -> Json.Encode.Value
+refEncoder ref =
+    Json.Encode.object
+        [ ( "book", bookEncoder ref.book )
+        , ( "chapter", Json.Encode.int ref.chapter )
+        ]
+
+
+passageEncoder : Passage -> Json.Encode.Value
+passageEncoder passage =
+    Json.Encode.object
+        [ ( "start", refEncoder passage.start )
+        , ( "end", refEncoder passage.end )
+        ]
