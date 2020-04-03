@@ -1,6 +1,7 @@
 @font-face {
   font-family: "Manrope Light";
-  src: url("../fonts/Manrope-Light.woff2") format("woff2"),
+  src: local("Manrope Light"), local("Manrope-Light"),
+    url("../fonts/Manrope-Light.woff2") format("woff2"),
     url("../fonts/Manrope-Light.otf") format("opentype");
 }
 
