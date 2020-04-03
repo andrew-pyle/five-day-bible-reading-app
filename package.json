@@ -1,6 +1,6 @@
 {
   "name": "five-day-bible-reading-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Web application to lookup today's reading with the Five-Day Bible Reading plan (fivedaybiblereading.com)",
   "main": "index.js",
   "scripts": {
