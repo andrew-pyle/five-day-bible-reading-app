@@ -281,7 +281,7 @@ view model =
 
 fiveDayPlanUrl : String
 fiveDayPlanUrl =
-    "/local/data/five-day-reading-plan.json"
+    "/data/five-day-reading-plan.json"
 
 
 fetchFiveDayPlanData : String -> Cmd Msg
