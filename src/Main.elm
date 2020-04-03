@@ -209,7 +209,7 @@ view : Model -> Html Msg
 view model =
     div [ class "container" ]
         [ div [ class "header" ]
-            [ h1 [] [ text "Five-Day Reading Plan Electronic Log" ]
+            [ h1 [] [ text "Five-Day Reading Plan" ]
             , div [ class "week-controls" ]
                 [ button [ onClick PreviousDay ] [ text "← Previous Week" ]
                 , h2 [ class "week-label" ] [ text <| "Week" ++ " " ++ String.fromInt model.weekInView ]
