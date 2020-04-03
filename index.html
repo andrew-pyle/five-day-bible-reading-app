@@ -9,36 +9,41 @@
       href="https://fonts.googleapis.com/css2?family=Lexend+Deca&display=swap"
       rel="stylesheet"
     />
-    <script src="elm.js"></script>
-
-    <style>
-      body {
-        margin: 0;
-      }
-    </style>
   </head>
+
   <body>
     <div id="elm"></div>
-    <script>
-      const localData = JSON.parse(
-        localStorage.getItem(
-          "Five_Day_Bible_Reading_Plan_App_User_Reading_Progress"
-        )
-      );
+    <script src="https://cdn.jsdelivr.net/npm/pouchdb@7.1.1/dist/pouchdb.min.js"></script>
+    <script src="elm.js"></script>
+    <script src="db-interface.js" type="module"></script>
+    <script type="module">
+      import {
+        getLocalUserProgress,
+        serializeUserProgress,
+      } from "./db-interface.js";
 
-      // Elm
+      (async () => {
+        try {
+          const appId = "Five_Day_Bible_Reading_Plan_App_User_Reading_Progress";
+          const existingUserData = await getLocalUserProgress(appId);
 
-      const app = Elm.Main.init({
-        node: document.getElementById("elm"),
-        flags: localData
-      });
-      app.ports.persistUserProgress.subscribe(data => {
-        // console.log(data);
-        localStorage.setItem(
-          "Five_Day_Bible_Reading_Plan_App_User_Reading_Progress",
-          JSON.stringify(data)
-        );
-      });
+          // ======== ELM ========
+          const app = Elm.Main.init({
+            node: document.getElementById("elm"),
+            flags: existingUserData,
+          });
+
+          // Handle Elm → JS Port
+          app.ports.persistUserProgress.subscribe((data) => {
+            // console.log(data); // Debug
+            serializeUserProgress(appId, data);
+          });
+          // ======== end ELM ========
+        } catch (err) {
+          // Handle entire app's errors, if they get this far.
+          console.log(err);
+        }
+      })();
     </script>
   </body>
 </html>
