@@ -24,6 +24,20 @@
         serializeUserProgress,
       } from "./db-interface.js";
 
+      // Service Worker
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", async () => {
+          try {
+            const serviceWorkerURL = "/service-worker.js";
+            const registration = await navigator.serviceWorker.register(
+              serviceWorkerURL
+            );
+          } catch (err) {
+            console.error(error);
+          }
+        });
+      }
+
       (async () => {
         try {
           const appId = "Five_Day_Bible_Reading_Plan_App_User_Reading_Progress";
