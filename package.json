@@ -6,7 +6,8 @@
   "scripts": {
     "start": "elm-live src/Main.elm --open -- --output=elm.js --debug",
     "build": "elm make src/Main.elm --optimize --output=elm.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "version": "sed -e 's/^.*APP_VERSION.*=.*;/const APP_VERSION = \"'$npm_package_version'\";/' ./service-worker.js > ./temp.js && mv temp.js service-worker.js && git add ./service-worker.js"
   },
   "author": "",
   "license": "ISC",
