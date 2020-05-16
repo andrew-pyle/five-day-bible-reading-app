@@ -10,6 +10,8 @@ import Html.Events exposing (..)
 import Http
 import Json.Decode exposing (Decoder)
 import Json.Encode
+import Svg exposing (path, rect, svg)
+import Svg.Attributes
 import Task
 import Time
 
@@ -235,13 +237,51 @@ view model =
                                                 )
                                             , onClick (ToggleDayTextComplete model.weekInView dayIndex)
                                             ]
-                                            [ text <|
-                                                (eachDay.dayText
-                                                    |> List.sortWith Bible.comparePassage
-                                                    |> List.map Bible.passageToString
-                                                    |> List.intersperse " , "
-                                                    |> List.foldl (++) ""
-                                                )
+                                            [ label [ class "day-text-content", for <| "complete-input-" ++ String.fromInt dayIndex ]
+                                                [ input [ class "complete-input", name <| "complete-input-" ++ String.fromInt dayIndex, type_ "checkbox", checked eachDay.complete ]
+                                                    []
+                                                , svg
+                                                    [ Svg.Attributes.version "1.1"
+                                                    , Svg.Attributes.class "complete-indicator"
+                                                    , Svg.Attributes.viewBox "0 0 522 522"
+                                                    , Svg.Attributes.fill "none"
+                                                    , Svg.Attributes.width "522"
+                                                    , Svg.Attributes.height "522"
+                                                    ]
+                                                    [ rect
+                                                        [ Svg.Attributes.class "box"
+                                                        , Svg.Attributes.opacity "1"
+                                                        , Svg.Attributes.stroke "black"
+                                                        , Svg.Attributes.fill "#73BD59"
+                                                        , Svg.Attributes.strokeWidth "20"
+                                                        , Svg.Attributes.rx "110"
+                                                        , Svg.Attributes.width "502"
+                                                        , Svg.Attributes.height "502"
+                                                        , Svg.Attributes.x "10"
+                                                        , Svg.Attributes.y "10"
+                                                        ]
+                                                        []
+                                                    , path
+                                                        [ Svg.Attributes.class "check"
+                                                        , Svg.Attributes.strokeWidth "40"
+                                                        , Svg.Attributes.strokeOpacity "1"
+                                                        , Svg.Attributes.stroke "#EDEDED"
+                                                        , Svg.Attributes.strokeLinecap "round"
+                                                        , Svg.Attributes.strokeLinejoin "round"
+                                                        , Svg.Attributes.d "M98 318L227 423L441 95"
+                                                        ]
+                                                        []
+                                                    ]
+                                                , span []
+                                                    [ text <|
+                                                        (eachDay.dayText
+                                                            |> List.sortWith Bible.comparePassage
+                                                            |> List.map Bible.passageToString
+                                                            |> List.intersperse " , "
+                                                            |> List.foldl (++) ""
+                                                        )
+                                                    ]
+                                                ]
                                             ]
                                     )
                                     readingForAWeek
@@ -269,7 +309,7 @@ view model =
                         CantGetIt errMsg ->
                             NoOp
                 ]
-                [ text "Cache Locally" ]
+                [ text "💾 Save in Your Browser" ]
             ]
         ]
 
