@@ -14,7 +14,7 @@ const APP_SHELL = [
   "/style.css",
   "/fonts/noto_emoji_u270f.svg",
   // PWA
-  //   "/site.webmanifest",
+  "/site.webmanifest",
 ];
 
 // INSTALL

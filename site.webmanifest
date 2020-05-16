@@ -1,0 +1,17 @@
+{
+  "short_name": "Five-Day Bible",
+  "name": "Five-Day Bible Reading Plan Tracker",
+  "description": "Tracks progress in your browser",
+  "icons": [
+    {
+      "src": "/fonts/noto_emoji_u270f.svg",
+      "type": "image/svg+xml",
+      "sizes": "150x150"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffebc5",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#ffebc5"
+}
