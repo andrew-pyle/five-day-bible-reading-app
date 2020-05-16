@@ -1,5 +1,5 @@
 // INFO
-const APP_VERSION = "0.1.4";
+const APP_VERSION = "0.2.0";
 const CACHE_NAME = `five-day-bible-reading-app-v${APP_VERSION}`;
 
 const APP_SHELL = [
