@@ -11,8 +11,10 @@ const APP_SHELL = [
   "/data/five-day-reading-plan.json",
   "https://cdn.jsdelivr.net/npm/pouchdb@7.1.1/dist/pouchdb.min.js",
   // Styles & fonts
+  "/favicon-512x512.png",
   "/style.css",
-  "/fonts/noto_emoji_u270f.svg",
+  "/fonts/checkbox.svg",
+  "/fonts/checkbox-safari-mask.svg",
   // PWA
   "/site.webmanifest",
 ];
