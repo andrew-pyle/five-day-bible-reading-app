@@ -4,7 +4,7 @@
   "description": "Tracks progress in your browser",
   "icons": [
     {
-      "src": "/favicon-512-512.png",
+      "src": "/favicon-512x512.png",
       "type": "image/svg+xml",
       "sizes": "512x512"
     }
