@@ -4,9 +4,9 @@
   "description": "Tracks progress in your browser",
   "icons": [
     {
-      "src": "/fonts/noto_emoji_u270f.svg",
+      "src": "/favicon-512-512.png",
       "type": "image/svg+xml",
-      "sizes": "150x150"
+      "sizes": "512x512"
     }
   ],
   "start_url": "/",
