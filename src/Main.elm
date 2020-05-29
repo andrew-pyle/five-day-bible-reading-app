@@ -251,9 +251,9 @@ view model =
                                                     [ rect
                                                         [ Svg.Attributes.class "box"
                                                         , Svg.Attributes.opacity "1"
-                                                        , Svg.Attributes.stroke "black"
+                                                        , Svg.Attributes.stroke "#202020"
                                                         , Svg.Attributes.fill "#73BD59"
-                                                        , Svg.Attributes.strokeWidth "20"
+                                                        , Svg.Attributes.strokeWidth "10"
                                                         , Svg.Attributes.rx "110"
                                                         , Svg.Attributes.width "502"
                                                         , Svg.Attributes.height "502"
@@ -263,7 +263,7 @@ view model =
                                                         []
                                                     , path
                                                         [ Svg.Attributes.class "check"
-                                                        , Svg.Attributes.strokeWidth "40"
+                                                        , Svg.Attributes.strokeWidth "60"
                                                         , Svg.Attributes.strokeOpacity "1"
                                                         , Svg.Attributes.stroke "#EDEDED"
                                                         , Svg.Attributes.strokeLinecap "round"
@@ -272,7 +272,7 @@ view model =
                                                         ]
                                                         []
                                                     ]
-                                                , span []
+                                                , span [ class "day-text-text" ]
                                                     [ text <|
                                                         (eachDay.dayText
                                                             |> List.sortWith Bible.comparePassage
