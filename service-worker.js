@@ -9,13 +9,16 @@ const APP_SHELL = [
   "/elm.js",
   "/db-interface.js",
   "/data/five-day-reading-plan.json",
+  // JS Libraries
   "https://cdn.jsdelivr.net/npm/pouchdb@7.1.1/dist/pouchdb.min.js",
-  // Styles & fonts
-  "/favicon-512x512.png",
+  // Styles
   "/style.css",
   "/fonts/checkbox.svg",
   "/fonts/checkbox-safari-mask.svg",
+  // Google Fonts
+  "https://fonts.googleapis.com/css2?family=Lexend+Deca&display=swap",
   // PWA
+  "/favicon-512x512.png",
   "/site.webmanifest",
 ];
 
@@ -62,45 +65,17 @@ async function clearOtherCaches() {
 
 // FETCH
 self.addEventListener("fetch", (event) => {
-  event.respondWith(networkFirstCacheFallback(event.request));
+  event.respondWith(cacheFirstNetworkFallback(event.request));
 });
 
 /**
- * Serves the content from the network if available, and from the cache if not
- * See: https://glebbahmutov.com/blog/async-functions-in-sw/
+ * Retrieves resource from cache, falling back to a network request upon a
+ * cache miss.
+ * See: https://developers.google.com/web/fundamentals/instant-and-offline/offline-cookbook#cache-falling-back-to-network
  * @param {Request} request The request to intercept & serve a response for
- * @returns {Response} The response for the intercepted request
+ * @returns {Promise<Response>} The response for the intercepted request
  */
-async function networkFirstCacheFallback(request) {
-  try {
-    // Try to get a fresh response from the network
-    const networkResponse = await fetch(request, {
-      mode: "cors",
-      credentials: "same-origin",
-    });
-    // console.log(networkResponse); // Debug
-
-    // Cache a 'ok' network response
-    if (networkResponse && networkResponse.ok === true) {
-      // Cache the fresh network response
-      const responseClone = networkResponse.clone();
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put(request, responseClone);
-    }
-
-    // Send the network response to the browser, good or bad
-    return networkResponse;
-  } catch (err) {
-    // Try the cache. Maybe we are just offline?
-    const cacheResponse = await caches.match(request);
-    // Cache hit
-    if (cacheResponse) {
-      return cacheResponse;
-    }
-    // Cache Miss
-    else {
-      // If all else fails, crash the site
-      Promise.reject("no response available");
-    }
-  }
+async function cacheFirstNetworkFallback(request) {
+  const cacheResponse = await caches.match(request);
+  return cacheResponse || fetch(request);
 }
