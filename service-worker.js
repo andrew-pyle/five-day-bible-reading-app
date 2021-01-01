@@ -5,7 +5,6 @@ const CACHE_NAME = `five-day-bible-reading-app-v${APP_VERSION}`;
 const APP_SHELL = [
   // App
   "/",
-  "/index.html",
   "/elm.js",
   "/db-interface.js",
   "/data/five-day-reading-plan.json",
@@ -15,8 +14,8 @@ const APP_SHELL = [
   "/style.css",
   "/fonts/checkbox.svg",
   "/fonts/checkbox-safari-mask.svg",
-  // Google Fonts
-  "https://fonts.googleapis.com/css2?family=Lexend+Deca&display=swap",
+  "/fonts/Manrope/Manrope-Light.woff2",
+  "/fonts/Lexend-Deca/Lexend-Deca.woff2",
   // PWA
   "/favicon-512x512.png",
   "/site.webmanifest",

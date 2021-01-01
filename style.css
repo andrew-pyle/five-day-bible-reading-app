@@ -1,8 +1,12 @@
 @font-face {
   font-family: "Manrope Light";
   src: local("Manrope Light"), local("Manrope-Light"),
-    url("../fonts/Manrope-Light.woff2") format("woff2"),
-    url("../fonts/Manrope-Light.otf") format("opentype");
+    url("../fonts/Manrope/Manrope-Light.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Lexend Deca";
+  src: local("Lexend Deca Regular"), local("Lexend-Deca-Reguar"),
+    url("../fonts/Lexend-Deca/Lexend-Deca.woff2") format("woff2");
 }
 
 :root {
